@@ -297,19 +297,31 @@ def send_translation_sentence(chat_id, user_id):
     item = TRANSLATION_SENTENCES[state.sentence_index]
     bot.send_message(chat_id, f"🇷🇺 {item['russian']}")
 
+# ===== FIXED FUNCTION - THIS IS THE MAIN CHANGE =====
 @bot.message_handler(content_types=['voice'])
 def handle_voice(message):
     user_id = message.from_user.id
     state = get_user_state(user_id)
+    
     if state.stage == 'translation':
-        item = TRANSLATION_SENTENCES[state.sentence_index]
-        bot.send_message(message.chat.id, f"✅ {item['english']}")
-        time.sleep(0.3)
-        markup = types.InlineKeyboardMarkup(row_width=2)
-        btn_play = types.InlineKeyboardButton("🔊 Play audio", callback_data="play_audio")
-        btn_next = types.InlineKeyboardButton("➡️ Next", callback_data="next_translation")
-        markup.add(btn_play, btn_next)
-        bot.send_message(message.chat.id, "Repeat the sentence aloud", reply_markup=markup)
+        try:
+            item = TRANSLATION_SENTENCES[state.sentence_index]
+            
+            # Create buttons
+            markup = types.InlineKeyboardMarkup(row_width=2)
+            btn_play = types.InlineKeyboardButton("🔊 Play audio", callback_data="play_audio")
+            btn_next = types.InlineKeyboardButton("➡️ Next", callback_data="next_translation")
+            markup.add(btn_play, btn_next)
+            
+            # Send answer and buttons together in ONE message
+            bot.send_message(
+                message.chat.id,
+                f"✅ {item['english']}\n\nRepeat the sentence aloud",
+                reply_markup=markup
+            )
+        except Exception as e:
+            print(f"Error handling voice message: {e}")
+            bot.send_message(message.chat.id, "❌ Sorry, there was an error. Please try again.")
 
 def finish_practice(chat_id, user_id):
     reset_user_state(user_id)
